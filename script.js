@@ -1,49 +1,12 @@
 /* ==========================================================
    CHERRY FRUIT SELLER — script.js
-   Fetches content via a Netlify serverless function,
-   which avoids all CORS issues with Google Docs.
+   Reads from Netlify function which fetches Google Sheets CSV
    ========================================================== */
 
-// Auto-refresh interval (5 minutes). Set to 0 to disable.
 const AUTO_REFRESH_INTERVAL_MS = 5 * 60 * 1000;
 
-// ---- Helpers ----
-
-function getField(map, key) {
-  const normalised = key.toLowerCase().trim();
-  for (const [k, v] of map.entries()) {
-    if (k.toLowerCase().trim() === normalised) return v.trim();
-  }
-  return "";
-}
-
-function parseDoc(text) {
-  const map   = new Map();
-  const lines = text.split("\n");
-  let lastKey = null;
-
-  for (const raw of lines) {
-    const line = raw.trimEnd();
-    if (!line) continue;
-
-    const colonIdx = line.indexOf(":");
-    if (colonIdx > 0 && colonIdx < 60) {
-      const potentialKey   = line.slice(0, colonIdx).trim();
-      const potentialValue = line.slice(colonIdx + 1).trim();
-      if (!potentialKey.includes("\n")) {
-        map.set(potentialKey, potentialValue);
-        lastKey = potentialKey;
-        continue;
-      }
-    }
-
-    if (lastKey) {
-      const existing = map.get(lastKey) || "";
-      map.set(lastKey, existing + "\n" + line);
-    }
-  }
-  return map;
-}
+function show(el) { el.removeAttribute("hidden"); }
+function hide(el) { el.setAttribute("hidden", ""); }
 
 function formatTimestamp(date) {
   return `Updated ${date.toLocaleString("en-US", {
@@ -51,12 +14,6 @@ function formatTimestamp(date) {
     hour: "2-digit", minute: "2-digit"
   })}`;
 }
-
-function show(el) { el.removeAttribute("hidden"); }
-function hide(el) { el.setAttribute("hidden", ""); }
-
-
-// ---- Main fetch + render ----
 
 async function loadContent() {
   const loadingEl  = document.getElementById("loading-state");
@@ -72,23 +29,21 @@ async function loadContent() {
   hide(cardInfo);
 
   try {
-    // Call our own Netlify function — no CORS issues!
     const response = await fetch(`/.netlify/functions/fetch-doc?cb=${Date.now()}`);
-
     if (!response.ok) throw new Error(`Function returned ${response.status}`);
 
-    const text = await response.text();
-    const data = parseDoc(text);
+    const data = await response.json();
 
-    const enTitle  = getField(data, "English Title");
-    const enBody   = getField(data, "English Body");
-    const faTitle  = getField(data, "Farsi Title");
-    const faBody   = getField(data, "Farsi Body");
-    const location = getField(data, "Location");
-    const contact  = getField(data, "Contact");
-    const tag      = getField(data, "Fruit Tag");
+    // Keys match column A of your Google Sheet exactly
+    const enTitle  = (data["English Title"] || "").trim();
+    const enBody   = (data["English Body"]  || "").trim();
+    const faTitle  = (data["Farsi Title"]   || "").trim();
+    const faBody   = (data["Farsi Body"]    || "").trim();
+    const location = (data["Location"]      || "").trim();
+    const contact  = (data["Contact"]       || "").trim();
+    const tag      = (data["Fruit Tag"]     || "").trim();
 
-    if (!enTitle && !faTitle) throw new Error("No content found in document.");
+    if (!enTitle && !faTitle) throw new Error("No content found.");
 
     if (enTitle || enBody) {
       document.getElementById("en-title").textContent     = enTitle;
@@ -104,16 +59,17 @@ async function loadContent() {
       show(cardFa);
     }
 
-    const locEl  = document.getElementById("info-location");
-    const conEl  = document.getElementById("info-contact");
     const locRow = document.getElementById("location-row");
     const conRow = document.getElementById("contact-row");
 
-    if (location) { locEl.textContent = location; show(locRow); }
-    else          { hide(locRow); }
+    if (location) {
+      document.getElementById("info-location").textContent = location;
+      show(locRow);
+    } else { hide(locRow); }
 
     if (contact) {
-      conEl.innerHTML = `<a href="tel:${contact.replace(/\s/g,"")}" style="color:inherit;">${contact}</a>`;
+      document.getElementById("info-contact").innerHTML =
+        `<a href="tel:${contact.replace(/\s/g,"")}" style="color:inherit;">${contact}</a>`;
       show(conRow);
     } else { hide(conRow); }
 
@@ -131,7 +87,6 @@ async function loadContent() {
   }
 }
 
-// ---- Boot ----
 loadContent();
 if (AUTO_REFRESH_INTERVAL_MS > 0) {
   setInterval(loadContent, AUTO_REFRESH_INTERVAL_MS);
