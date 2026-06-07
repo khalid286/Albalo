@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fresh Fruits — فروش میوه تازه</title>
+  <meta name="description" content="Fresh seasonal fruits available now. | میوه‌های تازه فصلی موجود است." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Lato:wght@400;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ===== HEADER ===== -->
+  <header class="site-header">
+    <div class="cherry-deco left">
+      <span class="cherry">🍒</span>
+      <span class="leaf">🌿</span>
+    </div>
+    <div class="header-center">
+      <h1 class="site-title">Fresh &amp; Local</h1>
+      <p class="site-subtitle">Seasonal Fruits · میوه‌های فصلی</p>
+    </div>
+    <div class="cherry-deco right">
+      <span class="leaf">🌿</span>
+      <span class="cherry">🍒</span>
+    </div>
+  </header>
+
+  <!-- ===== LAST UPDATED BADGE ===== -->
+  <div class="update-strip">
+    <span class="pulse-dot"></span>
+    <span id="last-updated">Loading latest update…</span>
+  </div>
+
+  <!-- ===== MAIN CONTENT ===== -->
+  <main class="content-grid" id="main-content">
+
+    <!-- Loading state -->
+    <div class="loading-card" id="loading-state">
+      <div class="spinner"></div>
+      <p>Fetching today's update…</p>
+    </div>
+
+    <!-- Error / fallback state (hidden by default) -->
+    <div class="fallback-card" id="fallback-state" hidden>
+      <span class="fallback-icon">🍃</span>
+      <p class="fallback-title">Update Temporarily Unavailable</p>
+      <p class="fallback-body">The latest fruit news couldn't be loaded right now.<br>Please check back soon or contact us directly.</p>
+      <p class="fallback-farsi" dir="rtl">آخرین اخبار میوه در حال حاضر در دسترس نیست.<br>لطفاً بعداً دوباره سر بزنید یا مستقیماً با ما تماس بگیرید.</p>
+    </div>
+
+    <!-- English announcement card -->
+    <article class="announce-card card-en" id="card-english" hidden>
+      <div class="card-header">
+        <span class="lang-badge">🇬🇧 English</span>
+        <span class="fruit-tag" id="en-fruit-tag"></span>
+      </div>
+      <h2 class="card-title" id="en-title"></h2>
+      <p class="card-body" id="en-body"></p>
+    </article>
+
+    <!-- Farsi announcement card -->
+    <article class="announce-card card-fa" id="card-farsi" hidden dir="rtl">
+      <div class="card-header">
+        <span class="lang-badge">🇮🇷 فارسی</span>
+        <span class="fruit-tag" id="fa-fruit-tag"></span>
+      </div>
+      <h2 class="card-title" id="fa-title"></h2>
+      <p class="card-body" id="fa-body"></p>
+    </article>
+
+    <!-- Location + Contact card -->
+    <aside class="info-card" id="card-info" hidden>
+      <div class="info-row" id="location-row">
+        <span class="info-icon">📍</span>
+        <div>
+          <p class="info-label">Location · موقعیت</p>
+          <p class="info-value" id="info-location"></p>
+        </div>
+      </div>
+      <div class="info-divider"></div>
+      <div class="info-row" id="contact-row">
+        <span class="info-icon">📞</span>
+        <div>
+          <p class="info-label">Contact · تماس</p>
+          <p class="info-value" id="info-contact"></p>
+        </div>
+      </div>
+    </aside>
+
+  </main>
+
+  <!-- ===== FOOTER ===== -->
+  <footer class="site-footer">
+    <p>🍒 Fresh &amp; Local · فروش میوه تازه 🍒</p>
+    <p class="footer-note">Content managed via Google Docs</p>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
