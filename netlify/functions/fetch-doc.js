@@ -1,35 +1,53 @@
 // netlify/functions/fetch-doc.js
-// This runs on Netlify's server (not the browser), so CORS is not an issue.
+// Fetches the Google Sheets CSV server-side — no CORS issues.
 
-const DOC_URL = "https://docs.google.com/document/d/e/2PACX-1vT3kJRS_EisoCAp4ekLw-JAQ_yGvqpxQVuoTpPb8LNtik75ull8q-UWsHzE4ESND5odbJgVWFpHuc_i/pub?output=txt";
+const SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR-Bj2vMIFa6XKMhJosaJk7bH1Xtsc1KHFlOH-HnFnIJ7d8N9vo8Ye12zw8lBZK5eN1DTI-u0xV_gWA/pub?output=csv";
 
 exports.handler = async function () {
   try {
-    const response = await fetch(DOC_URL);
+    const response = await fetch(SHEET_URL, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (compatible; FruitSiteBot/1.0)"
+      }
+    });
+
+    const body = await response.text();
 
     if (!response.ok) {
+      console.error("Google returned:", response.status, body);
       return {
         statusCode: 502,
-        body: JSON.stringify({ error: `Google returned ${response.status}` }),
+        body: JSON.stringify({ error: `Google returned ${response.status}`, detail: body }),
       };
     }
 
-    const text = await response.text();
+    // Parse CSV into key-value pairs and return as JSON
+    const lines = body.split("\n").filter(l => l.trim());
+    const result = {};
+    for (const line of lines) {
+      // CSV: split on first comma only (value may contain commas)
+      const commaIdx = line.indexOf(",");
+      if (commaIdx === -1) continue;
+      const key   = line.slice(0, commaIdx).replace(/^"|"$/g, "").trim();
+      const value = line.slice(commaIdx + 1).replace(/^"|"$/g, "").trim();
+      if (key) result[key] = value;
+    }
 
     return {
       statusCode: 200,
       headers: {
-        "Content-Type": "text/plain; charset=utf-8",
-        "Access-Control-Allow-Origin": "*",   // allow our own frontend to read it
+        "Content-Type": "application/json",
+        "Access-Control-Allow-Origin": "*",
         "Cache-Control": "no-cache",
       },
-      body: text,
+      body: JSON.stringify(result),
     };
+
   } catch (err) {
+    console.error("Function error:", err);
     return {
       statusCode: 500,
       body: JSON.stringify({ error: err.message }),
     };
   }
 };
-
