@@ -1,42 +1,11 @@
 /* ==========================================================
    CHERRY FRUIT SELLER — script.js
-   Fetches plain-text content from a published Google Doc,
-   parses the key: value pairs, and populates the page.
+   Fetches content via a Netlify serverless function,
+   which avoids all CORS issues with Google Docs.
    ========================================================== */
 
-// ============================================================
-// ⬇️  CONFIGURATION — Edit only this section
-// ============================================================
-
-/**
- * Paste your published Google Doc URL here.
- * It should end with:  /pub?output=txt
- *
- * Example:
- *   https://docs.google.com/document/d/e/2PACX-.../pub?output=txt
- */
-const GOOGLE_DOC_URL = "https://docs.google.com/document/d/e/2PACX-1vT3kJRS_EisoCAp4ekLw-JAQ_yGvqpxQVuoTpPb8LNtik75ull8q-UWsHzE4ESND5odbJgVWFpHuc_i/pub?output=txt";
-
-/**
- * How often (in milliseconds) to auto-refresh when the tab is open.
- * Default: every 5 minutes. Set to 0 to disable.
- */
+// Auto-refresh interval (5 minutes). Set to 0 to disable.
 const AUTO_REFRESH_INTERVAL_MS = 5 * 60 * 1000;
-
-// ============================================================
-// End of configuration
-// ============================================================
-
-
-// ---- CORS Proxy list (tried in order until one works) ----
-// Google Docs blocks direct browser fetches (CORS policy).
-// These free proxies forward the request on our behalf.
-const CORS_PROXIES = [
-  (url) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
-  (url) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
-  (url) => `https://cors-anywhere.herokuapp.com/${url}`,
-];
-
 
 // ---- Helpers ----
 
@@ -77,48 +46,14 @@ function parseDoc(text) {
 }
 
 function formatTimestamp(date) {
-  const en = date.toLocaleString("en-US", {
+  return `Updated ${date.toLocaleString("en-US", {
     weekday: "short", month: "short", day: "numeric",
     hour: "2-digit", minute: "2-digit"
-  });
-  return `Updated ${en}`;
+  })}`;
 }
 
 function show(el) { el.removeAttribute("hidden"); }
 function hide(el) { el.setAttribute("hidden", ""); }
-
-/**
- * Tries each CORS proxy in sequence.
- * Returns the response text from the first one that succeeds.
- * Throws if all proxies fail.
- */
-async function fetchWithFallback(docUrl) {
-  const separator = docUrl.includes("?") ? "&" : "?";
-  const targetUrl = docUrl + separator + "cb=" + Date.now();
-
-  for (const proxyFn of CORS_PROXIES) {
-    try {
-      const proxiedUrl = proxyFn(targetUrl);
-      console.log("Trying:", proxiedUrl);
-
-      const response = await fetch(proxiedUrl, { cache: "no-store" });
-
-      if (!response.ok) {
-        console.warn("Proxy failed:", response.status, proxiedUrl);
-        continue;
-      }
-
-      const text = await response.text();
-      console.log("Fetched text:", text);
-
-      if (text && text.length > 10) return text;
-    } catch (error) {
-      console.warn("Proxy error:", error);
-    }
-  }
-
-  throw new Error("All proxies failed.");
-}
 
 
 // ---- Main fetch + render ----
@@ -136,16 +71,13 @@ async function loadContent() {
   hide(cardFa);
   hide(cardInfo);
 
-  if (GOOGLE_DOC_URL.includes("YOUR_DOC_ID_HERE")) {
-    document.getElementById("last-updated").textContent =
-      "⚠️ Set your Google Doc URL in script.js to see live content.";
-    hide(loadingEl);
-    show(fallbackEl);
-    return;
-  }
-
   try {
-    const text = await fetchWithFallback(GOOGLE_DOC_URL);
+    // Call our own Netlify function — no CORS issues!
+    const response = await fetch(`/.netlify/functions/fetch-doc?cb=${Date.now()}`);
+
+    if (!response.ok) throw new Error(`Function returned ${response.status}`);
+
+    const text = await response.text();
     const data = parseDoc(text);
 
     const enTitle  = getField(data, "English Title");
@@ -191,7 +123,7 @@ async function loadContent() {
     hide(loadingEl);
 
   } catch (err) {
-    console.error("Fruit site: could not load content.", err);
+    console.error("Fruit site error:", err);
     hide(loadingEl);
     show(fallbackEl);
     document.getElementById("last-updated").textContent =
@@ -199,10 +131,8 @@ async function loadContent() {
   }
 }
 
-
 // ---- Boot ----
 loadContent();
-
 if (AUTO_REFRESH_INTERVAL_MS > 0) {
   setInterval(loadContent, AUTO_REFRESH_INTERVAL_MS);
 }
