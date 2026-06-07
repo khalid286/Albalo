@@ -93,19 +93,30 @@ function hide(el) { el.setAttribute("hidden", ""); }
  * Throws if all proxies fail.
  */
 async function fetchWithFallback(docUrl) {
-  const targetUrl = docUrl + "&cb=" + Date.now(); // cache-bust
+  const separator = docUrl.includes("?") ? "&" : "?";
+  const targetUrl = docUrl + separator + "cb=" + Date.now();
 
   for (const proxyFn of CORS_PROXIES) {
     try {
       const proxiedUrl = proxyFn(targetUrl);
+      console.log("Trying:", proxiedUrl);
+
       const response = await fetch(proxiedUrl, { cache: "no-store" });
-      if (!response.ok) continue; // try next proxy
+
+      if (!response.ok) {
+        console.warn("Proxy failed:", response.status, proxiedUrl);
+        continue;
+      }
+
       const text = await response.text();
-      if (text && text.length > 10) return text; // success
-    } catch (_) {
-      // network error on this proxy — try the next one
+      console.log("Fetched text:", text);
+
+      if (text && text.length > 10) return text;
+    } catch (error) {
+      console.warn("Proxy error:", error);
     }
   }
+
   throw new Error("All proxies failed.");
 }
 
